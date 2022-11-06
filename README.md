@@ -1,1 +1,3 @@
 # Ensure - A PHP validation library
+--------------------------------------------
+Documentation coming soon...
