@@ -28,11 +28,12 @@ class Field
     /**
      * @param string $field
      * @param array $rules
+     * @param array $overrideArgs
      */
-    public function __construct(string $field, array $rules)
+    public function __construct(string $field, array $rules, array $overrideArgs = [])
     {
         $this->key = $field;
-        $this->rules = $this->parse($rules);
+        $this->rules = $this->parse($rules, $overrideArgs);
     }
 
 
@@ -40,10 +41,11 @@ class Field
      * Parse rules
      *
      * @param array $rules
+     * @param array $overrideArgs
      *
      * @return array
      */
-    protected function parse(array &$rules): array
+    protected function parse(array &$rules, array $overrideArgs): array
     {
         $return = [];
         $meta = ['required', 'nullable'];
@@ -62,7 +64,9 @@ class Field
                 continue;
             }
 
-            $return[$validator] = $args;
+            $replace = (array)($overrideArgs[$rule] ?? []);
+
+            $return[$validator] = array_replace((array)$args, $replace);
         }
 
         return $return;

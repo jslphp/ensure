@@ -60,10 +60,11 @@ class Ensure
      * @param array $data
      * @param array|string $ruleset
      * @param array $messages
+     * @param array $overrides
      *
      * @return Result
      */
-    public function validate(array $data, array|string $ruleset, array $messages = []): Result
+    public function validate(array $data, array|string $ruleset, array $messages = [], array $overrides = []): Result
     {
         $values = new Values($data);
         $result = new Result;
@@ -79,8 +80,8 @@ class Ensure
             $messages = array_replace($set['messages'], $messages);
         }
 
-        foreach ($ruleset as $field => $rules) {;
-            [$success, $error] = $this->validateField(new Field($field, $rules), $values);
+        foreach ($ruleset as $field => $rules) {
+            [$success, $error] = $this->validateField(new Field($field, $rules, $overrides[$field] ?? []), $values);
 
             if ($success) {
                 // Successful, continue to next rule
@@ -119,7 +120,7 @@ class Ensure
         $success = true;
         $error = null;
         foreach ($field->rules as $validator => $args) {
-            $args = array_merge([$value], [$args]);
+            $args = array_merge([$value], $args);
 
             $response = $this->registry->execute($validator, $args, $values);
 
