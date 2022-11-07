@@ -3,191 +3,221 @@
 namespace Jsl\Ensure;
 
 use Jsl\Ensure\Components\Field;
+use Jsl\Ensure\Components\Messages;
 use Jsl\Ensure\Components\Registry;
 use Jsl\Ensure\Components\Result;
+use Jsl\Ensure\Components\Rulesets;
 use Jsl\Ensure\Components\Values;
-use Jsl\Ensure\Exceptions\UnknownRulesetException;
-use Jsl\Ensure\Validators\Arrays;
-use Jsl\Ensure\Validators\Comparisons;
-use Jsl\Ensure\Validators\Formats;
-use Jsl\Ensure\Validators\Size;
-use Jsl\Ensure\Validators\Strings;
-use Jsl\Ensure\Validators\Types;
 
 class Ensure
 {
     /**
+     * @var Values
+     */
+    protected Values $values;
+
+    /**
      * @var Registry
      */
-    public readonly Registry $registry;
+    protected Registry $registry;
+
+    /**
+     * @var Rulesets
+     */
+    protected Rulesets $rulesets;
+
+    /**
+     * @var Result
+     */
+    protected Result $result;
+
+    /**
+     * @var Messages
+     */
+    protected Messages $messages;
 
     /**
      * @var array
      */
-    protected array $rulesets = [];
+    protected array $fields = [];
+
+    /**
+     * @var bool
+     */
+    protected bool $validated = false;
+
+    /**
+     * @var array
+     */
+    protected array $rules = [];
+
+    /**
+     * @var array
+     */
+    protected array $fieldNames = [];
 
 
-    public function __construct()
+    /**
+     * @param array $values
+     * @param Registry $registry
+     * @param Rulesets $rulesets
+     * @param array $ruleset
+     */
+    public function __construct(array $values, Registry $registry, Rulesets $rulesets, string|array $rules = [])
     {
-        $this->registry = new Registry;
-        $this->addDefaultValidators();
+        $this->values = new Values($values);
+        $this->registry = $registry;
+        $this->rulesets = $rulesets;
+        $this->addRules($rules);
+        $this->messages = new Messages;
+
+        // Create new field objects
+        foreach (array_keys($values) as $field) {
+            $this->fields[$field] = $this->field($field);
+        }
     }
 
 
     /**
-     * Add a named ruleset
+     * Get field validator
      *
-     * @param string $name
-     * @param array $rules
-     * @param array $messages
+     * @param string $field
+     *
+     * @return Field
+     */
+    public function field(string $field): Field
+    {
+        return new Field($this->values, $this->registry, $field);
+    }
+
+
+    /**
+     * Set nice field names
+     *
+     * @param array $names
      *
      * @return self
      */
-    public function addRuleset(string $name, array $rules, array $messages = []): self
+    public function setFieldNames(array $names): self
     {
-        $this->rulesets[$name] = [
-            'rules' => $rules,
-            'messages' => $messages,
-        ];
+        $this->fieldNames = $names;
 
         return $this;
     }
 
 
     /**
-     * Validate a data set against a rule set
-     *
-     * @param array $data
-     * @param array|string $ruleset
-     * @param array $messages
-     * @param array $overrides
-     *
-     * @return Result
-     */
-    public function validate(array $data, array|string $ruleset, array $messages = [], array $overrides = []): Result
-    {
-        $values = new Values($data);
-        $result = new Result;
-
-        if (is_string($ruleset)) {
-            // Get a named ruleset and messages
-            if (key_exists($ruleset, $this->rulesets) === false) {
-                throw new UnknownRulesetException("Unkown ruleset: {$ruleset}");
-            }
-
-            $set = $this->rulesets[$ruleset];
-            $ruleset = $set['rules'];
-            $messages = array_replace($set['messages'], $messages);
-        }
-
-        foreach ($ruleset as $field => $rules) {
-            [$success, $error] = $this->validateField(new Field($field, $rules, $overrides[$field] ?? []), $values);
-
-            if ($success) {
-                // Successful, continue to next rule
-                continue;
-            }
-
-            $result->setFieldAsFailed($field, $messages[$field] ?? ($error ?? null));
-        }
-
-        return $result;
-    }
-
-
-    /**
-     * Validate a field
-     *
-     * @param Field $field
-     * @param Values $values
+     * Check if all validations was successful
      *
      * @return bool
      */
-    public function validateField(Field $field, Values $values): array
+    public function isValid(): bool
     {
-        if ($values->has($field->key) === false) {
-            $success = $field->required === false;
-            return [$success, $success === false ? 'is required' : null];
-        }
+        $this->run();
 
-        $value = $values->get($field->key);
-
-        if ($value === null) {
-            $success = $field->nullable;
-            return [$success, $success === false ? 'cannot be null' : null];
-        }
-
-        $success = true;
-        $error = null;
-        foreach ($field->rules as $validator => $args) {
-            $args = array_merge([$value], $args);
-
-            $response = $this->registry->execute($validator, $args, $values);
-
-            if ($response === true) {
-                continue;
+        foreach ($this->fields as $field) {
+            if ($field->isValid() === false) {
+                return false;
             }
-
-            if (is_string($response)) {
-                $error = $response;
-            }
-
-            $success = false;
-            break;
         }
 
-        return [$success, $error];
+        return true;
     }
 
 
     /**
-     * @return void
+     * Check if we had any validation errors
+     *
+     * @return bool
      */
-    protected function addDefaultValidators(): void
+    public function isInvalid(): bool
     {
-        // Add validators
-        $this->registry->batchAdd([
-            // Format validators
-            'email' => [Formats::class, 'isEmail'],
-            'url' => [Formats::class, 'isUrl'],
-            'mac' => [Formats::class, 'isMac'],
-            'ip'  => [Formats::class, 'isIp'],
-            'ipv4' => [Formats::class, 'isIpv4'],
-            'ipv6' => [Formats::class, 'isIpv6'],
-            'alpha' => [Formats::class, 'isAlpha'],
-            'alphanum' => [Formats::class, 'isAlphaNumeric'],
-            'hex' => [Formats::class, 'isHex'],
-            'octal' => [Formats::class, 'isOctal'],
+        return $this->isValid() === false;
+    }
 
-            // Type validators
-            'string' => [Types::class, 'isString'],
-            'integer' => [Types::class, 'isInt'],
-            'numeric' => [Types::class, 'isNumeric'],
-            'float' => [Types::class, 'isFloat'],
-            'array' => [Types::class, 'isArray'],
-            'boolean' => [Types::class, 'isBool'],
 
-            // String validators
-            'startsWith' => [Strings::class, 'startsWidth'],
-            'notStartsWith' => [Strings::class, 'notStartsWidth'],
-            'endsWith' => [Strings::class, 'endsWidth'],
-            'notEndsWith' => [Strings::class, 'notEndsWidth'],
-            'contains' => [Strings::class, 'contains'],
-            'notContains' => [Strings::class, 'notContains'],
-            'regex' => [Strings::class, 'regex'],
+    /**
+     * Get all errors, if any
+     *
+     * @param bool $onlyFieldNames
+     * 
+     * @return array
+     */
+    public function getErrors(bool $onlyFieldNames = false): array
+    {
+        if ($this->isValid()) {
+            return [];
+        }
 
-            // Array validators
-            'in' => [Arrays::class, 'in'],
-            'notIn' => [Arrays::class, 'notIn'],
+        $errors = [];
 
-            // Size validators
-            'size' => [Size::class, 'size'],
-            'minSize' => [Size::class, 'minSize'],
-            'maxSize' => [Size::class, 'maxSize'],
+        foreach ($this->fields as $name => $field) {
+            if ($list = $field->getErrors($onlyFieldNames)) {
+                $errors[$name] = $list;
+            }
+        }
 
-            // Comparisons
-            'same' => [Comparisons::class, 'same'],
-            'notSame' => [Comparisons::class, 'notSame'],
-        ]);
+        return $errors;
+    }
+
+
+    /**
+     * Get errors with custom error messages
+     *
+     * @param array $messages
+     * @param array $names
+     *
+     * @return array
+     */
+    public function getErrorsWithMessages(array $messages): array
+    {
+        return $this->messages->create($this->getErrors(), $messages, $this->fieldNames);
+    }
+
+
+    /**
+     * Add rules
+     *
+     * @param string|array $rules
+     *
+     * @return self
+     */
+    public function addRules(string|array $rules): self
+    {
+        $this->rules = is_string($rules)
+            ? $this->rulesets->get($rules)
+            : $rules;
+
+        return $this;
+    }
+
+
+    /**
+     * Validate fields using a ruleset
+     *
+     * @param array $ruleset
+     *
+     * @return self
+     */
+    protected function run(): self
+    {
+        foreach ($this->rules as $fieldName => $rules) {
+            if (isset($this->fields[$fieldName]) === false) {
+                $this->fields[$fieldName] = $this->field($fieldName);
+            }
+
+            $field = $this->fields[$fieldName];
+
+            foreach ($rules as $validator => $args) {
+                if (is_numeric($validator)) {
+                    $validator = $args;
+                    $args = [];
+                }
+
+                call_user_func_array([$field, $validator], (array)$args);
+            }
+        }
+
+        return $this;
     }
 }

@@ -10,16 +10,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function startsWith(mixed $value, string $text): bool|string
+    public function startsWith(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_starts_with($value, $text)
-            ?: "Must start with {$text}";
+        return is_string($value) && is_string($text) && str_starts_with($value, $text);
     }
 
 
@@ -29,16 +24,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function notStartsWith(mixed $value, string $text): bool|string
+    public function notStartsWith(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_starts_with($value, $text) === false
-            ?: "Must not start with {$text}";
+        return !is_string($value) || !is_string($text) || !str_starts_with($value, $text);
     }
 
 
@@ -48,16 +38,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function endsWith(mixed $value, string $text): bool|string
+    public function endsWith(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_ends_with($value, $text)
-            ?: "Must end with {$text}";
+        return is_string($value) && is_string($text) && str_ends_with($value, $text);
     }
 
 
@@ -67,16 +52,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function notEndsWith(mixed $value, string $text): bool|string
+    public function notEndsWith(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_ends_with($value, $text) === false
-            ?: "Must end with {$text}";
+        return !is_string($value) || !is_string($text) || !str_ends_with($value, $text);
     }
 
 
@@ -86,16 +66,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function contains(mixed $value, string $text): bool|string
+    public function contains(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_contains($value, $text)
-            ?: "Must contain with {$text}";
+        return is_string($value) && is_string($text) && str_contains($value, $text);
     }
 
 
@@ -105,16 +80,11 @@ class Strings
      * @param mixed $value
      * @param string $text
      *
-     * @return bool|string
+     * @return bool
      */
-    public function notContains(mixed $value, string $text): bool|string
+    public function notContains(mixed $value, string $text): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return str_contains($value, $text)
-            ?: "Must not contain {$text}";
+        return !is_string($value) || !is_string($text) || !str_contains($value, $text);
     }
 
 
@@ -124,15 +94,10 @@ class Strings
      * @param mixed $value
      * @param string $expression
      *
-     * @return bool|string
+     * @return bool
      */
-    public function regex(mixed $value, string $expression): bool|string
+    public function regex(mixed $value, string $expression): bool
     {
-        if (is_string($value) === false) {
-            return "Must be a string";
-        }
-
-        return preg_match($expression, $value) === 1
-            ?: "Invalid format";
+        return is_string($value) && preg_match($expression, $value) === 1;
     }
 }

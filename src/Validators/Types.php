@@ -9,12 +9,11 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isString(mixed $value): bool|string
+    public function isString(mixed $value): bool
     {
-        return is_string($value)
-            ?: 'Must be a string';
+        return is_string($value);
     }
 
 
@@ -23,12 +22,11 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isInt(mixed $value): bool|string
+    public function isInt(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE)
-            ?: 'Must be an integer';
+        return filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -37,12 +35,11 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isNumeric(mixed $value): bool|string
+    public function isNumeric(mixed $value): bool
     {
-        return is_numeric($value)
-            ?: 'Must be a number';
+        return is_numeric($value);
     }
 
 
@@ -51,12 +48,11 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isFloat(mixed $value): bool|string
+    public function isFloat(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE)
-            ?: 'Must be a decimal';
+        return filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -65,12 +61,11 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isArray(mixed $value): bool|string
+    public function isArray(mixed $value): bool
     {
-        return is_array($value)
-            ?: 'Must be an array';
+        return is_array($value);
     }
 
 
@@ -79,11 +74,10 @@ class Types
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isBool(mixed $value): bool|string
+    public function isBool(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE)
-            ?: 'Must be a boolean';
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) !== null;
     }
 }

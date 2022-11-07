@@ -10,24 +10,21 @@ class Size
      * @param string $value
      * @param int|float $threshold
      *
-     * @return bool|string
+     * @return bool
      */
-    public function size(mixed $value, int|float $threshold): bool|string
+    public function size(mixed $value, int|float $size): bool
     {
         switch (gettype($value)) {
             case 'string':
-                return strlen($value) == $threshold
-                    ?: "String lengt must be {$threshold}";
+                return strlen($value) == $size;
             case 'integer':
             case 'float':
-                return $value == $threshold
-                    ?: "Value must be {$threshold}";
+                return $value == $size;
             case 'array':
-                return $value == $threshold
-                    ?: "List must have {$threshold} item(s)";
-            default:
-                return 'Invalid value';
+                return $value == $size;
         }
+
+        return false;
     }
 
 
@@ -37,24 +34,21 @@ class Size
      * @param string $value
      * @param int|float $threshold
      *
-     * @return bool|string
+     * @return bool
      */
-    public function minSize(mixed $value, int|float $threshold): bool|string
+    public function minSize(mixed $value, int|float $threshold): bool
     {
         switch (gettype($value)) {
             case 'string':
-                return strlen($value) >= $threshold
-                    ?: "String length must be at least {$threshold}";
+                return strlen($value) >= $threshold;
             case 'integer':
             case 'float':
-                return $value >= $threshold
-                    ?: "Value must be at least {$threshold}";
+                return $value >= $threshold;
             case 'array':
-                return $value >= $threshold
-                    ?: "List must contain at least {$threshold} items";
-            default:
-                return 'Invalid value';
+                return $value >= $threshold;
         }
+
+        return false;
     }
 
 
@@ -64,23 +58,20 @@ class Size
      * @param string $value
      * @param int|float $threshold
      *
-     * @return bool|string
+     * @return bool
      */
-    public function maxSize(mixed $value, int|float $threshold): bool|string
+    public function maxSize(mixed $value, int|float $threshold): bool
     {
         switch (gettype($value)) {
             case 'string':
-                return strlen($value) <= $threshold
-                    ?: "String can not be longer than {$threshold}";
+                return strlen($value) <= $threshold;
             case 'integer':
             case 'float':
-                return $value <= $threshold
-                    ?: "Value can not be more than {$threshold}";
+                return $value <= $threshold;
             case 'array':
-                return $value <= $threshold
-                    ?: "List cannot contain more than {$threshold} items";
-            default:
-                return 'Invalid value';
+                return $value <= $threshold;
         }
+
+        return false;
     }
 }

@@ -2,14 +2,11 @@
 
 namespace Jsl\Ensure\Validators;
 
-use Jsl\Ensure\Components\Values;
+use Jsl\Ensure\Validators\Traits\RequireValuesTrait;
 
 class Comparisons
 {
-    /**
-     * @var Values
-     */
-    protected Values $values;
+    use RequireValuesTrait;
 
 
     /**
@@ -18,12 +15,11 @@ class Comparisons
      * @param string $value
      * @param string $field
      *
-     * @return bool|string
+     * @return bool
      */
-    public function same(string $value, string $field): bool|string
+    public function same(string $value, string $field): bool
     {
-        return $value === $this->values->get($field)
-            ?: "Must be same as {$field}";
+        return $value === $this->values->get($field);
     }
 
 
@@ -33,11 +29,10 @@ class Comparisons
      * @param string $value
      * @param string $field
      *
-     * @return bool|string
+     * @return bool
      */
-    public function notSame(string $value, string $field): bool|string
+    public function notSame(string $value, string $field): bool
     {
-        return $value !== $this->values->get($field)
-            ?: "Must not be same as {$field}";
+        return $value !== $this->values->get($field);
     }
 }

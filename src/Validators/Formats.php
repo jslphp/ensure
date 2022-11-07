@@ -2,8 +2,6 @@
 
 namespace Jsl\Ensure\Validators;
 
-use Jsl\Ensure\Components\Values;
-
 class Formats
 {
     /**
@@ -11,12 +9,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isEmail(mixed $value): bool|string
+    public function isEmail(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_EMAIL, FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid email address';
+        return filter_var($value, FILTER_VALIDATE_EMAIL, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -25,12 +22,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isUrl(mixed $value): bool|string
+    public function isUrl(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_URL, FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid URL';
+        return filter_var($value, FILTER_VALIDATE_URL, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -39,12 +35,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isMac(mixed $value): bool|string
+    public function isMac(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_MAC, FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid MAC address';
+        return filter_var($value, FILTER_VALIDATE_MAC, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -53,12 +48,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isIp(mixed $value): bool|string
+    public function isIp(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_IP, FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid IP address';
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -67,12 +61,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isIpv4(mixed $value): bool|string
+    public function isIpv4(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid IPv4 address';
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -81,12 +74,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isIpv6(mixed $value): bool|string
+    public function isIpv6(mixed $value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_NULL_ON_FAILURE) !== null
-            ?: 'Invalid IPv6 address';
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_NULL_ON_FAILURE) !== null;
     }
 
 
@@ -95,12 +87,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isAlpha(mixed $value): bool|string
+    public function isAlpha(mixed $value): bool
     {
-        return (is_string($value) && ctype_alpha($value))
-            ?: 'Contains non-alpha characters';
+        return (is_string($value) && ctype_alpha($value));
     }
 
 
@@ -109,12 +100,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isAlphaNumeric(mixed $value): bool|string
+    public function isAlphaNumeric(mixed $value): bool
     {
-        return (is_string($value) && ctype_alnum($value))
-            ?: 'Contains non-alpha numeric characters';
+        return (is_string($value) && ctype_alnum($value));
     }
 
 
@@ -123,12 +113,11 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isHex(mixed $value): bool|string
+    public function isHex(mixed $value): bool
     {
-        return (is_string($value) && ctype_xdigit($value))
-            ?: 'Must be hexadecimal';
+        return (is_string($value) && ctype_xdigit($value));
     }
 
 
@@ -137,18 +126,17 @@ class Formats
      *
      * @param mixed $value
      *
-     * @return bool|string
+     * @return bool
      */
-    public function isOct(mixed $value): bool|string
+    public function isOct(mixed $value): bool
     {
         if (is_string($value) === false) {
-            return 'Must be an octal number';
+            return false;
         }
 
         $dec = @octdec($value);
         $oct = $dec ? @decoct($dec) : null;
 
-        return $oct == $value
-            ?: "Must be an octal number";
+        return $oct == $value;
     }
 }

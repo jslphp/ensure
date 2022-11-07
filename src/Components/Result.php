@@ -5,54 +5,69 @@ namespace Jsl\Ensure\Components;
 class Result
 {
     /**
-     * @var bool
-     */
-    protected bool $isValid = true;
-
-    /**
      * @var array
      */
     protected array $errors = [];
 
+    /**
+     * @var bool
+     */
+    protected bool $success = true;
+
 
     /**
-     * Check if the 
+     * Check if validation was successful
      *
      * @return bool
      */
     public function isValid(): bool
     {
-        return $this->isValid;
+        return $this->success;
     }
 
 
     /**
-     * Add an error to the result
+     * Check if validation failed
+     *
+     * @return bool
+     */
+    public function isInvalid(): bool
+    {
+        return $this->isValid() === false;
+    }
+
+
+    /**
+     * Add an error
      *
      * @param string $field
-     * @param string|null $message
+     * @param string $rule
+     * @param array $args
      *
      * @return self
      */
-    public function setFieldAsFailed(string $field, ?string $message = null): self
+    public function addError(string $field, string $rule, array $args = []): self
     {
-        $this->isValid = false;
+        $this->success = false;
 
-        if ($message) {
-            $this->errors[$field] = $message;
-        }
+        $this->errors[$field] = (object)[
+            'rule' => $rule,
+            'args' => $args,
+        ];
 
         return $this;
     }
 
 
     /**
-     * Get all errors, if any
+     * Get all errros
+     *
+     * @param bool $onlyFieldNames
      *
      * @return array
      */
-    public function errors(): array
+    public function getErrors(bool $onlyFieldNames = false): array
     {
-        return $this->errors;
+        return $onlyFieldNames ? array_keys($this->errors) : $this->errors;
     }
 }

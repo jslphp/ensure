@@ -2,6 +2,7 @@
 
 namespace Jsl\Ensure\Components;
 
+use Closure;
 use Jsl\Ensure\Exceptions\UnknownValidatorException;
 
 class Registry
@@ -15,6 +16,23 @@ class Registry
      * @var array
      */
     protected array $instances = [];
+
+    /**
+     * @var Closure
+     */
+    protected Closure $resolver;
+
+
+    /**
+     *
+     * @param Closure|null $resolver Function for instantiating class instances
+     */
+    public function __construct(?Closure $resolver = null)
+    {
+        $this->resolver = $resolver ?? function ($className) {
+            return new $className;
+        };
+    }
 
 
     /**
@@ -36,11 +54,11 @@ class Registry
     /**
      * Add list of validators
      *
-     * @param array $validators
+     * @param array $validators Format: [validatorName => callable|[classname|instance, method]]
      *
      * @return self
      */
-    public function batchAdd(array $validators): self
+    public function addBatch(array $validators): self
     {
         foreach ($validators as $name => $validator) {
             $this->add($name, $validator);
@@ -77,24 +95,17 @@ class Registry
             throw new UnknownValidatorException("Call to unknown validator {$name}");
         }
 
-        $cb = $this->index[$name];
+        $callback = $this->index[$name];
 
-        // If the callback is an array with [classname, methodname], we need to check 
-        // if we should instantiate it and/or pass the values
-        if (is_array($cb) && count($cb) === 2) {
-            if (is_string($cb[0]) && key_exists($cb[0], $this->instances) === false) {
-                // It's not instantiated, so lets do that and store the instance in
-                // the cache for quich reuse
-                $cb[0] = $this->index[$name][0] = $this->instances[$cb[0]] = new $cb[0];
-            }
-
-            if ($values && method_exists($cb[0], 'setValues')) {
-                // The object has a setValues method, so let's pass the values to it
-                $cb[0]->setValues($values);
-            }
+        if ($this->needResolving($callback)) {
+            $callback[0] = $this->resolver->call($this, $callback[0]);
         }
 
-        return $cb;
+        if ($values && $this->needValues($callback)) {
+            $callback[0]->setValues($values);
+        }
+
+        return $callback;
     }
 
 
@@ -111,6 +122,39 @@ class Registry
     {
         $callback = $this->get($name, $values);
 
-        return call_user_func_array($callback, $args);
+        return $callback instanceof Closure && $values
+            ? $callback->call($values, $args)
+            : call_user_func_array($callback, $args);
+    }
+
+
+    /**
+     * Check if the method needs to be resolved
+     *
+     * @param mixed $callback
+     *
+     * @return bool
+     */
+    protected function needResolving($callback): bool
+    {
+        return is_array($callback)
+            && count($callback) == 2
+            && is_string($callback[0])
+            && key_exists($callback[0], $this->instances) === false;
+    }
+
+
+    /**
+     * Inject values to the callback instance, if all conditions are met
+     *
+     * @param mixed $callback
+     *
+     * @return bool
+     */
+    protected function needValues(mixed $callback): bool
+    {
+        return is_array($callback)
+            && is_object($callback[0])
+            && method_exists($callback[0], 'setValues');
     }
 }

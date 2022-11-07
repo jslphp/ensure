@@ -10,12 +10,11 @@ class Arrays
      * @param string $value
      * @param array ...$list
      *
-     * @return bool|string
+     * @return bool
      */
-    public function in(string $value, ...$list): bool|string
+    public function in(string $value, ...$list): bool
     {
-        return in_array($value, $list)
-            ?: 'Value not accepted';
+        return in_array($value, $list);
     }
 
 
@@ -25,11 +24,10 @@ class Arrays
      * @param string $value
      * @param array ...$list
      *
-     * @return bool|string
+     * @return bool
      */
-    public function notIn(string $value, ...$list): bool|string
+    public function notIn(string $value, ...$list): bool
     {
-        return in_array($value, $list) === false
-            ?: 'Value not accepted';
+        return in_array($value, $list) === false;
     }
 }
