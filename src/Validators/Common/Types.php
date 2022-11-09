@@ -1,8 +1,10 @@
 <?php
 
-namespace Jsl\Ensure\Validators;
+namespace Jsl\Ensure\Rules\Common;
 
-class Types
+use Jsl\Ensure\Rules\Contracts\RulesInterface;
+
+class Types implements RulesInterface
 {
     /**
      * Check if a value is a string
@@ -79,5 +81,37 @@ class Types
     public function isBool(mixed $value): bool
     {
         return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) !== null;
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getRules(): array
+    {
+        return [
+            'string' => [$this, 'isString'],
+            'integer' => [$this, 'isInt'],
+            'numeric' => [$this, 'isNumeric'],
+            'float' => [$this, 'isFloat'],
+            'array' => [$this, 'isArray'],
+            'boolean' => [$this, 'isBool'],
+        ];
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getDefaultMessages(): array
+    {
+        return [
+            'string' => '{field} must be a string',
+            'integer' => '{field} must be an integer',
+            'numeric' => '{field} must be numeric',
+            'float' => '{field} must be a decimal',
+            'array' => '{field} must be an array',
+            'boolean' => '{field} must be a boolean',
+        ];
     }
 }

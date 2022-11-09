@@ -1,8 +1,10 @@
 <?php
 
-namespace Jsl\Ensure\Validators;
+namespace Jsl\Ensure\Rules\Common;
 
-class Arrays
+use Jsl\Ensure\Rules\Contracts\RulesInterface;
+
+class Arrays implements RulesInterface
 {
     /**
      * Check that a value exists in a list of values
@@ -29,5 +31,29 @@ class Arrays
     public function notIn(string $value, ...$list): bool
     {
         return in_array($value, $list) === false;
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getRules(): array
+    {
+        return [
+            'in'    => [$this, 'in'],
+            'notIn' => [$this, 'notIn'],
+        ];
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function getDefaultMessages(): array
+    {
+        return [
+            'in'    => 'Value of {field} is not allowed',
+            'notIn' => 'Value of {field} is not allowed',
+        ];
     }
 }
