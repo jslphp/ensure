@@ -3,50 +3,32 @@
 namespace Jsl\Ensure\Validators;
 
 use Closure;
+use Jsl\Ensure\Contracts\RegistryInterface;
 use Jsl\Ensure\Contracts\ValidatorInterface;
-use Jsl\Ensure\Contracts\ValidatorsRegistryInterface;
+use Jsl\Ensure\Entities\CallbackEntity;
+use Jsl\Ensure\Exceptions\UnknownValidatorException;
 
-class Registry implements ValidatorsRegistryInterface
+class Registry implements RegistryInterface
 {
     /**
-     * @var array
-     */
-    protected array $resolved = [];
-
-    /**
-     * @var array
+     * @var CallbackEntity[]
      */
     protected array $index = [];
 
 
-    public function __construct()
-    {
-        $this->addMany(require __DIR__ . '/defaults.php');
-    }
-
-
     /**
-     * Add a validator
-     *
-     * @param string $name
-     * @param string|Closure|ValidatorInterface $validator
-     *
-     * @return self
+     * @inheritDoc
      */
     public function add(string $name, string|Closure|ValidatorInterface $validator): self
     {
-        $this->index[$name] = $validator;
+        $this->index[$name] = new CallbackEntity($name, $validator);
 
         return $this;
     }
 
 
     /**
-     * Add multiple validators from an array
-     *
-     * @param array $validators Format: [string $name => string|Closure|ValidatorInterface $validator, ...]
-     *
-     * @return self
+     * @inheritDoc
      */
     public function addMany(array $validators): self
     {
@@ -59,14 +41,30 @@ class Registry implements ValidatorsRegistryInterface
 
 
     /**
-     * Check if the registry has a named validator
-     *
-     * @param string $name
-     *
-     * @return bool
+     * @inheritDoc
      */
     public function has(string $name): bool
     {
         return key_exists($name, $this->index);
+    }
+
+
+    /**
+     * @inheritDoc
+     */
+    public function get(string $name): CallbackEntity
+    {
+        if ($this->has($name) === false) {
+            throw new UnknownValidatorException("Unknown validator: {$name}");
+        }
+
+        $entity = $this->index[$name];
+
+        if ($entity->isResolved() === false) {
+            $validator = $entity->getValidator();
+            $entity->setValidator(new $validator());
+        }
+
+        return $entity;
     }
 }
