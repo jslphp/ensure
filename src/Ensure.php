@@ -2,58 +2,60 @@
 
 namespace Jsl\Ensure;
 
-use Jsl\Ensure\Contracts\RegistryInterface;
-use Jsl\Ensure\Data\Data;
-use Jsl\Ensure\Entities\CallbackEntity;
-use Jsl\Ensure\Entities\ErrorEntity;
-use Jsl\Ensure\Entities\FieldEntity;
-use Jsl\Ensure\Entities\ResultEntity;
+use Jsl\Ensure\Components\Container;
+use Jsl\Ensure\Components\Data;
+use Jsl\Ensure\Components\Field;
+use Jsl\Ensure\Components\Result;
+use Jsl\Ensure\Exceptions\UnknownFieldException;
 
 class Ensure
 {
     /**
-     * @var RegistryInterface
+     * @var Container
      */
-    protected RegistryInterface $registry;
+    protected Container $container;
 
     /**
-     * @var Data
-     */
-    protected Data $data;
-
-    /**
-     * @var FieldEntity[]
+     * @var Field[]
      */
     protected array $fields = [];
 
+    /**
+     * @var Result|null
+     */
+    protected Result|null $result = null;
+
 
     /**
-     * @param RegistryInterface $registry
      * @param array $data
-     * @param array $rules
+     * @param array|string $rules
+     * @param Container|null $container
      */
-    public function __construct(RegistryInterface $registry, array $data, array $rules = [])
+    public function __construct(array $data, array|string $rules = [], ?Container $container = null)
     {
-        $this->registry = $registry;
-        $this->data = new Data($data);
+        $this->container = $container ?: new Container;
+        $this->container->setData(new Data($data));
+
         $this->setRules($rules);
     }
 
 
     /**
-     * Set the validation rules
+     * Set validation rules
      *
-     * @param array $rules
+     * @param array|string $rules
      *
      * @return self
      */
-    public function setRules(array $rules): self
+    public function setRules(array|string $rules): self
     {
-        $this->fields = [];
-        $this->errors = [];
+        if (is_string($rules)) {
+            $rules = $this->container->rulesets()->get($rules);
+        }
 
         foreach ($rules as $field => $fieldRules) {
-            $this->fields[$field] = new FieldEntity($this->data, $field, $fieldRules);
+            $this->fields[$field] = (new Field($field, $this->container))
+                ->setRules($fieldRules);
         }
 
         return $this;
@@ -61,69 +63,102 @@ class Ensure
 
 
     /**
-     * Validate the data
+     * Get a field
      *
-     * @return ResultEntity
+     * @param string $field
+     *
+     * @return Field
      */
-    public function validate(): ResultEntity
+    public function field(string $field): Field
     {
-        $success = true;
-        $errors = [];
-
-        foreach ($this->fields as $field) {
-            $key = $field->getKey();
-
-            if ($field->shouldBeSkipped()) {
-                if ($field->isRequired() && $field->isMissing()) {
-                    $message = '{field} is required';
-                    $errors[$key][] = new ErrorEntity($field, 'required', [], $message);
-                    $success = false;
-                }
-
-                if ($field->isNull() && $field->isNullable() === false) {
-                    $message = '{field} cannot be null';
-                    $errors[$key][] = new ErrorEntity($field, 'nullable', [], $message);
-                    $success = false;
-                }
-
-                continue;
-            }
-
-
-            foreach ($field->getRules() as $rule => $args) {
-                $entity = $this->prepareCallbackEntity($rule, $args);
-                $ruleArgs = array_merge([$field->getValue()], $entity->getArguments());
-
-                if ($entity->execute($ruleArgs) === false) {
-                    $message = $entity->getMessage();
-                    $errors[$key][] = new ErrorEntity($field, $rule, $entity->getArguments(), $message);
-                    $success = false;
-                }
-            }
+        if (key_exists($field, $this->fields) === false) {
+            throw new UnknownFieldException("Unknown field: {$field}");
         }
 
-        return new ResultEntity($success, $errors);
+        return $this->field[$field];
     }
 
 
     /**
-     * Prepare the callback entity
+     * Set a rule for a specific field
      *
+     * @param string $field
      * @param string $rule
-     * @param array $args
+     * @param mixed $args
      *
-     * @return CallbackEntity
+     * @return self
      */
-    protected function prepareCallbackEntity(string $rule, array $args): CallbackEntity
+    public function setRule(string $field, string $rule, mixed $args = []): self
     {
-        $entity = $this->registry->get($rule);
-
-        if ($entity->isValidatorInstance()) {
-            $entity->getValidator()->setData($this->data);
+        if (key_exists($field, $this->fields) === false) {
+            $this->fields[$field] = new Field($field, $this->container);
         }
 
-        $entity->setArguments($args);
+        $this->field($field)
+            ->setRule($rule, $args);
 
-        return $entity;
+        return $this;
+    }
+
+
+    /**
+     * Replace a single or all arguments
+     *
+     * @param string $field
+     * @param string $rule
+     * @param mixed $args
+     * @param string|int|null $index
+     *
+     * @return self
+     */
+    public function replaceArguments(string $field, string $rule, mixed $args, string|int|null $index = null): self
+    {
+        if (key_exists($field, $this->fields) === false) {
+            return $this;
+        }
+
+        $this->fields[$field]->replaceArguments($rule, $args, $index);
+
+        return $this;
+    }
+
+
+    /**
+     * Set nice names for fields (used for error messages)
+     *
+     * @param array $names [fieldname => nicename, ...]
+     *
+     * @return self 
+     */
+    public function setFieldNames(array $names): self
+    {
+        foreach ($names as $field => $name) {
+            if (key_exists($field, $this->fields)) {
+                $this->fields[$field]->setName($name);
+            }
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * Validate all fields
+     *
+     * @return Result
+     */
+    public function validate(): Result
+    {
+        if ($this->result) {
+            return $this->result;
+        }
+
+        $fields = [];
+
+        foreach ($this->fields as $key => $field) {
+            $fields[$key] = $field->validate();
+        }
+
+        return $this->result = new Result($this->container->errorsMiddleware(), $fields);
     }
 }

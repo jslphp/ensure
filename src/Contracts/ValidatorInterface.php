@@ -2,7 +2,8 @@
 
 namespace Jsl\Ensure\Contracts;
 
-use Jsl\Ensure\Data\Data;
+use Jsl\Ensure\Components\Data;
+
 
 interface ValidatorInterface
 {

@@ -20,7 +20,7 @@ class MinSizeValidator extends Validator
      */
     public function __invoke(mixed $value, mixed $threshold): bool
     {
-        if (is_numeric($threshold) === true) {
+        if (is_numeric($threshold) === false) {
             return false;
         }
 

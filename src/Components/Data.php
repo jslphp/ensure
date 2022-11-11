@@ -1,6 +1,6 @@
 <?php
 
-namespace Jsl\Ensure\Data;
+namespace Jsl\Ensure\Components;
 
 class Data
 {
@@ -23,6 +23,22 @@ class Data
     {
         $this->data = $data;
         $this->separator = $separator;
+    }
+
+
+    /**
+     * Set a value
+     *
+     * @param string $key
+     * @param mixed $value
+     *
+     * @return self
+     */
+    public function set(string $key, mixed $value): self
+    {
+        $this->data[$key] = $value;
+
+        return $this;
     }
 
 

@@ -2,8 +2,8 @@
 
 namespace Jsl\Ensure\Abstracts;
 
+use Jsl\Ensure\Components\Data;
 use Jsl\Ensure\Contracts\ValidatorInterface;
-use Jsl\Ensure\Data\Data;
 
 abstract class Validator implements ValidatorInterface
 {
