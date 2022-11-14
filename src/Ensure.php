@@ -6,6 +6,7 @@ use Jsl\Ensure\Components\Container;
 use Jsl\Ensure\Components\Data;
 use Jsl\Ensure\Components\Field;
 use Jsl\Ensure\Components\Result;
+use Jsl\Ensure\Contracts\ErrorsMiddlewareInterface;
 use Jsl\Ensure\Exceptions\UnknownFieldException;
 
 class Ensure
@@ -24,6 +25,11 @@ class Ensure
      * @var Result|null
      */
     protected Result|null $result = null;
+
+    /**
+     * @var array
+     */
+    protected array $customErrors = [];
 
 
     /**
@@ -143,6 +149,46 @@ class Ensure
 
 
     /**
+     * Set custom errors
+     *
+     * @param array $customErrors
+     *
+     * @return self
+     */
+    public function setCustomErrors(array $customErrors): self
+    {
+        $this->customErrors = $customErrors;
+
+        return $this;
+    }
+
+
+    /**
+     * Check if the validation was successful
+     *
+     * @return bool
+     */
+    public function success(): bool
+    {
+        return $this->validate()->success();
+    }
+
+
+    /**
+     * Get all validation errors, if any
+     *
+     * @param ErrorsMiddlewareInterface|null $middleware
+     * @param array|null $customErrors
+     *
+     * @return array
+     */
+    public function errors(?ErrorsMiddlewareInterface $middleware = null, array|null $customErrors = null): array
+    {
+        return $this->validate()->errors($middleware, $customErrors ?? $this->customErrors);
+    }
+
+
+    /**
      * Validate all fields
      *
      * @return Result
@@ -159,6 +205,6 @@ class Ensure
             $fields[$key] = $field->validate();
         }
 
-        return $this->result = new Result($this->container->errorsMiddleware(), $fields);
+        return $this->result = new Result($this->container->errorsMiddleware(), $fields, $this->customErrors);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+use Jsl\Ensure\Validators\Arrays;
+use Jsl\Ensure\Validators\Fields;
 use Jsl\Ensure\Validators\Formats;
 use Jsl\Ensure\Validators\Sizes;
 
@@ -16,4 +18,10 @@ return [
     'size'      => Sizes\SizeValidator::class,
     'minSize'   => Sizes\MinSizeValidator::class,
     'maxSize'   => Sizes\MaxSizeValidator::class,
+    // Arrays
+    'in'        => Arrays\InValidator::class,
+    'notIn'     => Arrays\NotInValidator::class,
+    // Fields
+    'same'      => Fields\SameValidator::class,
+    'notSame'   => Fields\NotSameValidator::class,
 ];

@@ -22,6 +22,11 @@ class Result
     protected array $errors = [];
 
     /**
+     * @var array
+     */
+    protected array $customErrors = [];
+
+    /**
      * @var ErrorsMiddlewareInterface
      */
     protected ErrorsMiddlewareInterface $middleware;
@@ -30,11 +35,13 @@ class Result
     /**
      * @param ErrorsMiddlewareInterface $middleware
      * @param FieldResult[] $fields
+     * @param array $customErrors
      */
-    public function __construct(ErrorsMiddlewareInterface $middleware, array $fields = [])
+    public function __construct(ErrorsMiddlewareInterface $middleware, array $fields = [], array $customErrors = [])
     {
         $this->middleware = $middleware;
         $this->fields = $fields;
+        $this->customErrors = $customErrors;
 
         $this->errors();
     }
@@ -100,30 +107,29 @@ class Result
      * Get all validation errros, if any
      *
      * @param ErrorsMiddlewareInterface|null $middleware
-     * @param array $customRuleErrors
+     * @param array|null $customErrors
      *
      * @return array
      */
-    public function errors(?ErrorsMiddlewareInterface $middleware = null, array $customRuleErrors = []): array
+    public function errors(?ErrorsMiddlewareInterface $middleware = null, array|null $customErrors = null): array
     {
         $middleware = $middleware ?: $this->middleware;
         $key = md5(get_class($middleware));
 
-        if (empty($customRuleErrors) && key_exists($key, $this->errors)) {
+        $customErrors = $customErrors ?: $this->customErrors;
+
+        if (empty($customErrors) && key_exists($key, $this->errors)) {
             return $this->errors[$key];
         }
-
-        $this->errors[$key] = ['_' => []];
 
         foreach ($this->fields as $field => $result) {
             if ($result->success() === false) {
                 $this->success = false;
-                $messages = $result->errors($middleware, $customRuleErrors);
+                $messages = $result->errors($middleware, $customErrors);
                 $this->errors[$key][$field] = (array)$messages;
-                $this->errors[$key]['_'] = array_merge($this->errors[$key]['_'], (array)$messages);
             }
         }
 
-        return $this->errors[$key];
+        return $this->errors[$key] ?? [];
     }
 }

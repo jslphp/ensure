@@ -38,6 +38,7 @@ class ErrorsMiddleware implements ErrorsMiddlewareInterface
             $customErrors['rules'] = [];
         }
 
+
         foreach ($failedRules as $rule => $info) {
             if (key_exists($rule, $customErrors['rules'])) {
                 $info['message'] = $customErrors['rules'][$rule];
