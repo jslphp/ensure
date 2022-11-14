@@ -3,8 +3,10 @@
 namespace Jsl\Ensure\Components;
 
 use Closure;
+use Jsl\Ensure\Contracts\ResolverMiddlewareInterface;
 use Jsl\Ensure\Contracts\ValidatorInterface;
 use Jsl\Ensure\Exceptions\UnknownValidatorException;
+use Jsl\Ensure\Middlewares\ResolverMiddleware;
 
 class Validators
 {
@@ -13,15 +15,37 @@ class Validators
      */
     protected array $index = [];
 
+    /**
+     * @var ResolverMiddlewareInterface
+     */
+    protected ResolverMiddlewareInterface $resolver;
+
 
     /**
      * @param bool $loadDefaults Defaults to false
      */
     public function __construct(bool $loadDefaults = false)
     {
+        $this->resolver = new ResolverMiddleware;
+
         if ($loadDefaults) {
             $this->addMany(require __DIR__ . '/../Validators/defaults.php');
         }
+    }
+
+
+    /**
+     * Set the resolver
+     *
+     * @param ResolverMiddleware $resolver
+     *
+     * @return self
+     */
+    public function setResolver(ResolverMiddleware $resolver): self
+    {
+        $this->resolver = $resolver;
+
+        return $this;
     }
 
 
@@ -87,7 +111,7 @@ class Validators
         $validator = $this->index[$name];
 
         if (is_string($validator) && is_callable($validator) === false) {
-            $this->index[$name] = new $validator;
+            $this->index[$name] = $this->resolver->resolveClass($validator);
         }
 
         return $this->index[$name];
