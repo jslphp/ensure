@@ -4,6 +4,7 @@ namespace Jsl\Ensure;
 
 use Closure;
 use Jsl\Ensure\Components\Container;
+use Jsl\Ensure\Contracts\ResolverMiddlewareInterface;
 use Jsl\Ensure\Contracts\ValidatorInterface;
 
 class EnsureFactory
@@ -17,6 +18,21 @@ class EnsureFactory
     public function __construct()
     {
         $this->container = new Container;
+    }
+
+
+    /**
+     * Set the validator resolver 
+     *
+     * @param ResolverMiddlewareInterface $resolver
+     *
+     * @return self
+     */
+    public function setValidatorResolver(ResolverMiddlewareInterface $resolver): self
+    {
+        $this->container->validators()->setResolver($resolver);
+
+        return $this;
     }
 
 
