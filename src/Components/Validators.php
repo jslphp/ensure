@@ -37,11 +37,11 @@ class Validators
     /**
      * Set the resolver
      *
-     * @param ResolverMiddleware $resolver
+     * @param ResolverMiddlewareInterface $resolver
      *
      * @return self
      */
-    public function setResolver(ResolverMiddleware $resolver): self
+    public function setResolver(ResolverMiddlewareInterface $resolver): self
     {
         $this->resolver = $resolver;
 
