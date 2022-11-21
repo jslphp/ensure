@@ -12,9 +12,9 @@ class FieldResult
     protected ErrorsMiddlewareInterface $middleware;
 
     /**
-     * @var string
+     * @var Field
      */
-    protected string $field;
+    protected Field $field;
 
     /**
      * @var bool
@@ -29,11 +29,11 @@ class FieldResult
 
     /**
      * @param ErrorsMiddlewareInterface $middleware
-     * @param string $field
+     * @param Field $field
      * @param bool $success
      * @param array $failedRules
      */
-    public function __construct(ErrorsMiddlewareInterface $middleware, string $field, bool $success, array $failedRules = [])
+    public function __construct(ErrorsMiddlewareInterface $middleware, Field $field, bool $success, array $failedRules = [])
     {
         $this->middleware = $middleware;
         $this->field = $field;

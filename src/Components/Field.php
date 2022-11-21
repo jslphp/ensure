@@ -277,6 +277,17 @@ class Field
 
 
     /**
+     * Get the fields custom rule errors
+     *
+     * @return array
+     */
+    public function getCustomRuleErrors(): array
+    {
+        return $this->customRuleErrors;
+    }
+
+
+    /**
      * Validate the field against its rules
      *
      * @return FieldResult
@@ -294,7 +305,7 @@ class Field
                 'message' => '{field} is required',
             ];
 
-            return new FieldResult($middleware, $this->name, false, $failed, $this->customRuleErrors);
+            return new FieldResult($middleware, $this, false, $failed);
         }
 
         // Nullable
@@ -304,12 +315,12 @@ class Field
                 'message' => '{field} cannot be null',
             ];
 
-            return new FieldResult($middleware, $this->name, false, $failed, $this->customRuleErrors);
+            return new FieldResult($middleware, $this, false, $failed);
         }
 
         // Got null
         if ($this->isNull()) {
-            return new FieldResult($middleware, $this->name, true, []);
+            return new FieldResult($middleware, $this, true, []);
         }
 
         $success = true;
@@ -327,6 +338,6 @@ class Field
             }
         }
 
-        return new FieldResult($middleware, $this->name, $success, $failed, $this->customRuleErrors);
+        return new FieldResult($middleware, $this, $success, $failed);
     }
 }
