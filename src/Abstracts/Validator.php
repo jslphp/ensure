@@ -2,42 +2,38 @@
 
 namespace Jsl\Ensure\Abstracts;
 
-use Jsl\Ensure\Components\Data;
+use Jsl\Ensure\Components\Values;
 use Jsl\Ensure\Contracts\ValidatorInterface;
 
 abstract class Validator implements ValidatorInterface
 {
     /**
-     * Error message
-     *
      * @var string
      */
-    protected string $message = '{field} failed validation';
+    protected string $template = '{field} failed validation';
 
 
     /**
-     * Get a value from the data object
-     *
-     * @var Data|null
+     * @var Values|null
      */
-    protected Data|null $data = null;
+    protected Values|null $values = null;
 
 
     /**
      * @inheritDoc
      */
-    public function getMessage(): string
+    public function getTemplate(): string
     {
-        return $this->message;
+        return $this->template;
     }
 
 
     /**
      * @inheritDoc
      */
-    public function setData(Data $data): self
+    public function setValues(Values $values): self
     {
-        $this->data = $data;
+        $this->values = $values;
 
         return $this;
     }
@@ -45,14 +41,14 @@ abstract class Validator implements ValidatorInterface
 
 
     /**
-     * Get a field value from the data object
+     * Get a field value
      *
      * @param string $field
      *
      * @return mixed
      */
-    protected function getField(string $field): mixed
+    protected function getValue(string $field): mixed
     {
-        return $this->data->get($field);
+        return $this->values->get($field);
     }
 }

@@ -4,6 +4,7 @@ use Jsl\Ensure\Validators\Arrays;
 use Jsl\Ensure\Validators\Fields;
 use Jsl\Ensure\Validators\Formats;
 use Jsl\Ensure\Validators\Sizes;
+use Jsl\Ensure\Validators\Types;
 
 return [
     // Formats
@@ -23,5 +24,7 @@ return [
     'notIn'     => Arrays\NotInValidator::class,
     // Fields
     'same'      => Fields\SameValidator::class,
-    'notSame'   => Fields\NotSameValidator::class,
+    'different' => Fields\DifferentValidator::class,
+    // Type
+    'type'      => Types\TypeValidator::class,
 ];

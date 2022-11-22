@@ -2,134 +2,53 @@
 
 namespace Jsl\Ensure\Components;
 
-use Jsl\Ensure\Contracts\ErrorsMiddlewareInterface;
+use Jsl\Ensure\Traits\SetTemplatesTrait;
 
 class Result
 {
-    /**
-     * @var bool
-     */
-    protected bool $success = true;
+    use SetTemplatesTrait;
 
     /**
-     * @var FieldResult[]
+     * @var Field[]
      */
     protected array $fields = [];
 
     /**
-     * @var array
+     * @var ErrorTemplates
      */
-    protected array $errors = [];
-
-    /**
-     * @var array
-     */
-    protected array $customErrors = [];
-
-    /**
-     * @var ErrorsMiddlewareInterface
-     */
-    protected ErrorsMiddlewareInterface $middleware;
+    protected ErrorTemplates $templates;
 
 
     /**
-     * @param ErrorsMiddlewareInterface $middleware
-     * @param FieldResult[] $fields
-     * @param array $customErrors
+     * @param array $failedFields
      */
-    public function __construct(ErrorsMiddlewareInterface $middleware, array $fields = [], array $customErrors = [])
+    public function __construct(array $failedFields, ErrorTemplates $templates)
     {
-        $this->middleware = $middleware;
-        $this->fields = $fields;
-        $this->customErrors = $customErrors;
-
-        $this->errors();
+        $this->fields = $failedFields;
+        $this->templates = $templates;
     }
 
 
     /**
-     * Check if all validation passed
+     * Check if the validation was valid
      *
      * @return bool
      */
-    public function success(): bool
+    public function isValid(): bool
     {
-        return $this->success;
+        return empty($this->fields) === true;
     }
 
 
     /**
-     * Get list of all failed rules and arguments
+     * Get all errors
+     * 
+     * @param bool $onlyFirst If true, only the first error for each field will be returned (Defaults to false)
      *
      * @return array
      */
-    public function failedRules(): array
+    public function getErrors(bool $onlyFirst = false): array
     {
-        $fields = [];
-
-        foreach ($this->fields as $field => $result) {
-            $fields[$field] = $result->getFailedRules();
-        }
-
-        return $fields;
-    }
-
-
-    /**
-     * Get list of all failed rules
-     *
-     * @return array
-     */
-    public function failedRuleNames(): array
-    {
-        $rules = [];
-
-        foreach ($this->fields as $field => $result) {
-            $rules[$field] = $result->getFailedRuleNames();
-        }
-
-        return $rules;
-    }
-
-
-    /**
-     * Get list of all failed fields
-     *
-     * @return array
-     */
-    public function failedFields(): array
-    {
-        return array_keys($this->failedFields);
-    }
-
-
-    /**
-     * Get all validation errros, if any
-     *
-     * @param ErrorsMiddlewareInterface|null $middleware
-     * @param array|null $customErrors
-     *
-     * @return array
-     */
-    public function errors(?ErrorsMiddlewareInterface $middleware = null, array|null $customErrors = null): array
-    {
-        $middleware = $middleware ?: $this->middleware;
-        $key = md5(get_class($middleware));
-
-        $customErrors = $customErrors ?: $this->customErrors;
-
-        if (empty($customErrors) && key_exists($key, $this->errors)) {
-            return $this->errors[$key];
-        }
-
-        foreach ($this->fields as $field => $result) {
-            if ($result->success() === false) {
-                $this->success = false;
-                $messages = $result->errors($middleware, $customErrors);
-                $this->errors[$key][$field] = (array)$messages;
-            }
-        }
-
-        return $this->errors[$key] ?? [];
+        return $this->templates->renderErrors($this->fields, $onlyFirst);
     }
 }

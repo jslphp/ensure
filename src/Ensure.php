@@ -2,19 +2,19 @@
 
 namespace Jsl\Ensure;
 
-use Jsl\Ensure\Components\Container;
-use Jsl\Ensure\Components\Data;
+use Closure;
+use Jsl\Ensure\Components\ErrorTemplates;
 use Jsl\Ensure\Components\Field;
 use Jsl\Ensure\Components\Result;
-use Jsl\Ensure\Contracts\ErrorsMiddlewareInterface;
+use Jsl\Ensure\Components\Validators;
+use Jsl\Ensure\Components\Values;
+use Jsl\Ensure\Contracts\ValidatorInterface;
 use Jsl\Ensure\Exceptions\UnknownFieldException;
+use Jsl\Ensure\Traits\SetTemplatesTrait;
 
 class Ensure
 {
-    /**
-     * @var Container
-     */
-    protected Container $container;
+    use SetTemplatesTrait;
 
     /**
      * @var Field[]
@@ -22,46 +22,70 @@ class Ensure
     protected array $fields = [];
 
     /**
-     * @var Result|null
+     * @var Values
      */
-    protected Result|null $result = null;
+    protected Values $values;
 
     /**
-     * @var array
+     * @var Validators
      */
-    protected array $customErrors = [];
+    protected Validators $validators;
+
+    /**
+     * @var ErrorTemplates
+     */
+    protected ErrorTemplates $templates;
 
 
     /**
-     * @param array $data
-     * @param array|string $rules
-     * @param Container|null $container
+     * @param array $rules
+     * @param array $values
+     * @param Validators|null $validators
+     * @param ErrorTemplates $errors
      */
-    public function __construct(array $data, array|string $rules = [], ?Container $container = null)
+    public function __construct(array $rules, array $values, ?Validators $validators = null, ?ErrorTemplates $templates = null)
     {
-        $this->container = $container ?: new Container;
-        $this->container->setData(new Data($data));
+        $this->values = new Values($values);
+        $this->validators = $validators ?? new Validators;
+        $this->templates = $templates ?? new ErrorTemplates;
 
-        $this->setRules($rules);
+        foreach ($rules as $key => $fieldRules) {
+            if (empty($fieldRules)) {
+                // If there aren't any rules defined, skip it
+                continue;
+            }
+
+            $this->fields[$key] = new Field($key, $fieldRules, $this->values);
+        }
     }
 
 
     /**
-     * Set validation rules
+     * Set the field separator
      *
-     * @param array|string $rules
+     * @param string $separator
      *
      * @return self
      */
-    public function setRules(array|string $rules): self
+    public function setFieldSeparator(string $separator): self
     {
-        if (is_string($rules)) {
-            $rules = $this->container->rulesets()->get($rules);
-        }
+        $this->values->setFieldSeparator($separator);
 
-        foreach ($rules as $field => $fieldRules) {
-            $this->fields[$field] = (new Field($field, $this->container))
-                ->setRules($fieldRules);
+        return $this;
+    }
+
+
+    /**
+     * Set "fancy" names for fields for the error messages
+     *
+     * @param array $names
+     *
+     * @return self
+     */
+    public function setFancyNames(array $names): self
+    {
+        foreach ($names as $field => $name) {
+            $this->setFieldRule($field, 'as', $name);
         }
 
         return $this;
@@ -69,142 +93,202 @@ class Ensure
 
 
     /**
-     * Get a field
+     * Set the validator class resolver
+     *
+     * @param Closure $resolver
+     *
+     * @return self
+     */
+    public function setClassResolver(Closure $resolver): self
+    {
+        $this->validators->setClassResolver($resolver);
+
+        return $this;
+    }
+
+
+    /**
+     * Set a field rule
      *
      * @param string $field
+     * @param string $rule
+     * @param mixed $args
      *
-     * @return Field
+     * @return self
      */
-    public function field(string $field): Field
+    public function setFieldRule(string $field, string $rule, ...$args): self
+    {
+        if (key_exists($field, $this->fields) === false) {
+            $this->fields[$field] = new Field($field, [], $this->values);
+        }
+
+        $this->fields[$field]->setRule($rule, $args);
+
+        return $this;
+    }
+
+
+    /**
+     * Set multiple field rules
+     *
+     * @param string $field
+     * @param array $rules
+     *
+     * @return self
+     */
+    public function setFieldRules(string $field, array $rules): self
+    {
+        if (key_exists($field, $this->fields) === false) {
+            $this->fields[$field] = new Field($field, [], $this->values);
+        }
+
+        $this->fields[$field]->setRules($rules);
+
+        return $this;
+    }
+
+
+    /**
+     * Remove a field rule
+     *
+     * @param string $field
+     * @param string $rule
+     *
+     * @return self
+     */
+    public function removeFieldRule(string $field, string $rule): self
     {
         if (key_exists($field, $this->fields) === false) {
             throw new UnknownFieldException("Unknown field: {$field}");
         }
 
-        return $this->field[$field];
+        $this->fields[$field]->removeRule($rule);
+
+        return $this;
+    }
+
+    /**
+     * Add validator
+     *
+     * @param string $name
+     * @param mixed $callback
+     * @param string|null $template
+     *
+     * @return self
+     */
+    public function addValidator(string $name, mixed $callback, ?string $template = null): self
+    {
+        $this->validators->add($name, $callback);
+
+        if ($template) {
+            $this->templates->setRuleTemplate($name, $template);
+        }
+
+        return $this;
     }
 
 
     /**
-     * Set a rule for a specific field
+     * Set a specific field value
      *
      * @param string $field
-     * @param string $rule
-     * @param mixed $args
+     * @param mixed $value
      *
      * @return self
      */
-    public function setRule(string $field, string $rule, mixed $args = []): self
+    public function setFieldValue(string $field, mixed $value): self
     {
-        if (key_exists($field, $this->fields) === false) {
-            $this->fields[$field] = new Field($field, $this->container);
-        }
-
-        $this->field($field)
-            ->setRule($rule, $args);
+        $this->values->set($field, $value);
 
         return $this;
     }
 
 
     /**
-     * Replace a single or all arguments
+     * Replace all values
      *
-     * @param string $field
-     * @param string $rule
-     * @param mixed $args
-     * @param string|int|null $index
+     * @param array $values
      *
      * @return self
      */
-    public function replaceArguments(string $field, string $rule, mixed $args, string|int|null $index = null): self
+    public function replaceValues(array $values): self
     {
-        if (key_exists($field, $this->fields) === false) {
-            return $this;
-        }
-
-        $this->fields[$field]->replaceArguments($rule, $args, $index);
+        $this->values->replace($values);
 
         return $this;
     }
 
 
     /**
-     * Set nice names for fields (used for error messages)
-     *
-     * @param array $names [fieldname => nicename, ...]
-     *
-     * @return self 
-     */
-    public function setFieldNames(array $names): self
-    {
-        foreach ($names as $field => $name) {
-            if (key_exists($field, $this->fields)) {
-                $this->fields[$field]->setName($name);
-            }
-        }
-
-        return $this;
-    }
-
-
-    /**
-     * Set custom errors
-     *
-     * @param array $customErrors
-     *
-     * @return self
-     */
-    public function setCustomErrors(array $customErrors): self
-    {
-        $this->customErrors = $customErrors;
-
-        return $this;
-    }
-
-
-    /**
-     * Check if the validation was successful
-     *
-     * @return bool
-     */
-    public function success(): bool
-    {
-        return $this->validate()->success();
-    }
-
-
-    /**
-     * Get all validation errors, if any
-     *
-     * @param ErrorsMiddlewareInterface|null $middleware
-     * @param array|null $customErrors
-     *
-     * @return array
-     */
-    public function errors(?ErrorsMiddlewareInterface $middleware = null, array|null $customErrors = null): array
-    {
-        return $this->validate()->errors($middleware, $customErrors ?? $this->customErrors);
-    }
-
-
-    /**
-     * Validate all fields
+     * Validate the set
      *
      * @return Result
      */
     public function validate(): Result
     {
-        if ($this->result) {
-            return $this->result;
-        }
-
         $fields = [];
 
         foreach ($this->fields as $key => $field) {
-            $fields[$key] = $field->validate();
+            $field->clearFailedRules();
+            if ($this->validateField($field) === false) {
+                $fields[$field->getKey()] = $field;
+            }
         }
 
-        return $this->result = new Result($this->container->errorsMiddleware(), $fields, $this->customErrors);
+        return new Result($fields, $this->templates);
+    }
+
+
+    /**
+     * Validate a field
+     *
+     * @param Field $field
+     *
+     * @return bool
+     */
+    protected function validateField(Field $field): bool
+    {
+        $success = true;
+
+        if ($this->values->has($field->getKey()) === false) {
+            if ($field->isRequired() === true) {
+                $field->addFailedRule('required', [], '{field} is required');
+                return false;
+            }
+
+            return true;
+        }
+
+        if ($this->values->isNull($field->getKey())) {
+            if ($field->isNullable() === false) {
+                $field->addFailedRule('nullable', [], '{field} cannot be null');
+                return false;
+            }
+
+            return true;
+        }
+
+        foreach ($field->rules->getRules() as $rule => $args) {
+            // Fetch the validator
+            $validator = $this->validators->get($rule, $this->values);
+
+            // Execute the validator
+            $isValid = call_user_func_array(
+                $validator,
+                array_merge([$field->getValue()], $args)
+            );
+
+            if ($isValid === false) {
+                // It failed, get (or create) the default error message
+                $error = $validator instanceof ValidatorInterface
+                    ? $validator->getTemplate()
+                    : '{field} failed validation';
+
+                $field->addFailedRule($rule, $args, $error);
+                $success = false;
+            }
+        }
+
+        return $success;
     }
 }

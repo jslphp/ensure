@@ -9,7 +9,7 @@ class EmailValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} must be a valid email address';
+    protected string $template = '{field} must be a valid email address';
 
 
     /**

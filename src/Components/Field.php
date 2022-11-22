@@ -2,69 +2,39 @@
 
 namespace Jsl\Ensure\Components;
 
-use InvalidArgumentException;
-
 class Field
 {
-    /**
-     * @var Container
-     */
-    protected Container $container;
-
-    /**
-     * @var Data
-     */
-    protected Data $data;
-
-    /**
-     * @var Validators
-     */
-    protected Validators $validators;
-
     /**
      * @var string
      */
     protected string $key;
 
     /**
-     * @var string
+     * @var Rules
      */
-    protected string $name;
+    public readonly Rules $rules;
+
+    /**
+     * @var Values
+     */
+    protected Values $values;
 
     /**
      * @var array
      */
-    protected array $rules = [];
-
-    /**
-     * @var array
-     */
-    protected array $customRuleErrors = [];
-
-    /**
-     * @var bool
-     */
-    protected bool $isRequired = false;
-
-    /**
-     * @var bool
-     */
-    protected bool $isNullable = false;
+    protected array $failed = [];
 
 
     /**
      * @param string $key
-     * @param Container $container
+     * @param array $rules
+     * @param Values $values
      */
-    public function __construct(string $key, ?Container $container = null)
+    public function __construct(string $key, array $rules, Values $values)
     {
-        $this->container  = $container ?: new Container;
-
-        $this->data       = $this->container->data();
-        $this->validators = $this->container->validators();
-
-        $this->key  = $key;
-        $this->name = $key;
+        $this->key = $key;
+        $this->rules = new Rules($rules);
+        $this->values = $values;
     }
 
 
@@ -80,48 +50,34 @@ class Field
 
 
     /**
-     * Set the field name
-     *
-     * @param string $name
-     *
-     * @return self
-     */
-    public function setName(string $name): self
-    {
-        $this->name = $name;
-
-        return $this;
-    }
-
-
-    /**
-     * Get the field name
+     * Get the fancy name, or return the key if no fancy name is set
      *
      * @return string
      */
-    public function getName(): string
+    public function getFancyName(): string
     {
-        return $this->name;
+        return $this->rules->getFancyName() ?? $this->getKey();
     }
 
 
     /**
-     * Set the data to be validated
+     * Set a rule
      *
-     * @param array $data
+     * @param string $rule
+     * @param array $args
      *
      * @return self
      */
-    public function setData(array $data): self
+    public function setRule(string $rule, array $args = []): self
     {
-        $this->data->set($this->key, $data);
+        $this->rules->setRule($rule, $args);
 
         return $this;
     }
 
 
     /**
-     * Set field rules
+     * Set multiple rules
      *
      * @param array $rules
      *
@@ -129,93 +85,22 @@ class Field
      */
     public function setRules(array $rules): self
     {
-        foreach ($rules as $rule => $args) {
-            $this->setRule($rule, $args);
-        }
+        $this->rules->setRules($rules);
 
         return $this;
     }
 
 
     /**
-     * Add a rule for the field
-     *
-     * @param string|int $rule
-     * @param mixed $args
-     *
-     * @return self
-     */
-    public function setRule(string|int $rule, mixed $args = []): self
-    {
-        if (is_numeric($rule) && is_string($args)) {
-            $rule = $args;
-            $args = [];
-        }
-
-        if ($rule === 'required') {
-            $this->isRequired = true;
-            return $this;
-        }
-
-        if ($rule === 'nullable') {
-            $this->isNullable = true;
-            return $this;
-        }
-
-        if ($rule === 'as') {
-            if (is_string($args)) {
-                $this->name = $args;
-            } else if (is_array($args) && count($args) > 0) {
-                $this->name = $args[0];
-            } else {
-                throw new InvalidArgumentException("Invalid arguments for the rule 'as'");
-            }
-
-            return $this;
-        }
-
-        $this->rules[$rule] = (array)$args;
-
-        return $this;
-    }
-
-
-    /**
-     * Set a custom error message for a rule
+     * Remove a rule from the field
      *
      * @param string $rule
-     * @param string|null $message
      *
      * @return self
      */
-    public function setError(string $rule, ?string $message = null): self
+    public function removeRule(string $rule): self
     {
-        $this->customRuleErrors[$rule] = $message;
-
-        return $this;
-    }
-
-
-    /**
-     * Replace a single or all arguments
-     *
-     * @param string $rule
-     * @param mixed $args
-     * @param string|int|null $index
-     *
-     * @return self
-     */
-    public function replaceArguments(string $rule, mixed $args, string|int|null $index = null): self
-    {
-        if (key_exists($rule, $this->rules) === false) {
-            return $this;
-        }
-
-        if ($index === null) {
-            $this->rules[$rule] = (array)$args;
-        } else {
-            $this->rules[$rule][$index] = $args;
-        }
+        $this->rules->remove($rule);
 
         return $this;
     }
@@ -228,7 +113,7 @@ class Field
      */
     public function isRequired(): bool
     {
-        return $this->isRequired;
+        return $this->rules->isRequired();
     }
 
 
@@ -239,18 +124,7 @@ class Field
      */
     public function isNullable(): bool
     {
-        return $this->isNullable;
-    }
-
-
-    /**
-     * Check if the field exists
-     *
-     * @return bool
-     */
-    public function isMissing(): bool
-    {
-        return $this->data->has($this->key) === false;
+        return $this->rules->isNullable();
     }
 
 
@@ -261,83 +135,84 @@ class Field
      */
     public function isNull(): bool
     {
-        return is_null($this->data->get($this->key, 'not null'));
+        return $this->values->isNull($this->getKey());
     }
 
 
     /**
-     * Check if the field should be skipped
+     * Check if the value exist
      *
      * @return bool
      */
-    public function shouldBeSkipped(): bool
+    public function hasValue(): bool
     {
-        return $this->isMissing() || $this->isNull();
+        return $this->values->has($this->getKey());
     }
 
 
     /**
-     * Get the fields custom rule errors
+     * Get the field value
+     *
+     * @return mixed
+     */
+    public function getValue(): mixed
+    {
+        return $this->values->get($this->getKey());
+    }
+
+
+    /**
+     * Check if there are any failed rules
+     *
+     * @return bool
+     */
+    public function hasFailedRules(): bool
+    {
+        return empty($this->failed) === false;
+    }
+
+
+    /**
+     * Clear all previous added failed rules
+     *
+     * @return self
+     */
+    public function clearFailedRules(): self
+    {
+        $this->failed = [];
+
+        return $this;
+    }
+
+
+    /**
+     * Add a failed rule to the field
+     *
+     * @param string $rule
+     * @param array $args
+     * @param string|null $template
+     *
+     * @return self
+     */
+    public function addFailedRule(string $rule, array $args = [], ?string $template = null): self
+    {
+        $this->failed[$rule] = [
+            'rule' => $rule,
+            'args' => $args,
+            'template' => $template,
+        ];
+
+        return $this;
+    }
+
+
+    /**
+     * Get all failed rules
      *
      * @return array
      */
-    public function getCustomRuleErrors(): array
+    public function getFailedRules(): array
     {
-        return $this->customRuleErrors;
-    }
-
-
-    /**
-     * Validate the field against its rules
-     *
-     * @return FieldResult
-     */
-    public function validate(): FieldResult
-    {
-        $failed = [];
-        $success = true;
-        $middleware = $this->container->errorsMiddleware();
-
-        // Is required
-        if ($this->isRequired() && $this->isMissing()) {
-            $failed['required'] = [
-                'args'    => [],
-                'message' => '{field} is required',
-            ];
-
-            return new FieldResult($middleware, $this, false, $failed);
-        }
-
-        // Nullable
-        if ($success & $this->isNull() && $this->isNullable() === false) {
-            $failed['nullable'] = [
-                'args'    => [],
-                'message' => '{field} cannot be null',
-            ];
-
-            return new FieldResult($middleware, $this, false, $failed);
-        }
-
-        // Got null
-        if ($this->isNull()) {
-            return new FieldResult($middleware, $this, true, []);
-        }
-
-        $success = true;
-
-        foreach ($this->rules as $rule => $args) {
-            [$ruleSuccess, $message] = $this->validators->execute($this->data, $this->key, $rule, $args);
-
-            if ($ruleSuccess === false) {
-                $failed[$rule] = [
-                    'args'    => $args,
-                    'message' => $message,
-                ];
-
-                $success = false;
-            }
-        }
-
-        return new FieldResult($middleware, $this, $success, $failed);
+        return $this->failed;
     }
 }

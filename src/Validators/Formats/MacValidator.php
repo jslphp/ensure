@@ -9,7 +9,7 @@ class MacValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} must be a valid MAC address';
+    protected string $template = '{field} must be a valid MAC address';
 
 
     /**

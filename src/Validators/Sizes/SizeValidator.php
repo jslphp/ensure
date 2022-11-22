@@ -9,7 +9,7 @@ class SizeValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = 'Size of {field} cannot be more or less than {a:0}';
+    protected string $template = 'Size of {field} cannot be more or less than {a:0}';
 
 
     /**

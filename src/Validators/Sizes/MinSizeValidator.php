@@ -9,7 +9,7 @@ class MinSizeValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = 'Size of {field} must be at least {a:0}';
+    protected string $template = 'Size of {field} must be at least {a:0}';
 
 
     /**

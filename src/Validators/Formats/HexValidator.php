@@ -9,7 +9,7 @@ class HexValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} must contain a hexa decimal value';
+    protected string $template = '{field} must contain a hexa decimal value';
 
 
     /**

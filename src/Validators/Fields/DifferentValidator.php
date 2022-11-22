@@ -4,12 +4,12 @@ namespace Jsl\Ensure\Validators\Fields;
 
 use Jsl\Ensure\Abstracts\Validator;
 
-class NotSameValidator extends Validator
+class DifferentValidator extends Validator
 {
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} cannot be same as {a:0}';
+    protected string $template = '{field} cannot be same as {a:0}';
 
 
     /**
@@ -20,7 +20,6 @@ class NotSameValidator extends Validator
      */
     public function __invoke(mixed $value, string $field): bool
     {
-
-        return $this->data->has($field) === false || $value !== $this->getField($field);
+        return $this->values->has($field) === false || $value !== $this->getValue($field);
     }
 }

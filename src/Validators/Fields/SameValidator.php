@@ -9,7 +9,7 @@ class SameValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} did not match {a:0}';
+    protected string $template = '{field} did not match {a:0}';
 
 
     /**
@@ -20,7 +20,6 @@ class SameValidator extends Validator
      */
     public function __invoke(mixed $value, string $field): bool
     {
-
-        return $this->data->has($field) && $value === $this->getField($field);
+        return $this->values->has($field) && $value === $this->getValue($field);
     }
 }

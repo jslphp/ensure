@@ -3,47 +3,65 @@
 namespace Jsl\Ensure\Components;
 
 use Closure;
-use Jsl\Ensure\Contracts\ResolverMiddlewareInterface;
 use Jsl\Ensure\Contracts\ValidatorInterface;
+use Jsl\Ensure\Exceptions\InvalidCallbackException;
 use Jsl\Ensure\Exceptions\UnknownValidatorException;
-use Jsl\Ensure\Middlewares\ResolverMiddleware;
 
 class Validators
 {
     /**
-     * @var string|Closure|ValidatorInterface[]
+     * @var array
      */
-    protected array $index = [];
+    protected array $validators;
 
     /**
-     * @var ResolverMiddlewareInterface
+     * @var Closure
      */
-    protected ResolverMiddlewareInterface $resolver;
-
+    protected Closure $classResolver;
 
     /**
-     * @param bool $loadDefaults Defaults to false
+     * @param bool $defaults
      */
-    public function __construct(bool $loadDefaults = false)
+    public function __construct(bool $defaults = true)
     {
-        $this->resolver = new ResolverMiddleware;
-
-        if ($loadDefaults) {
+        if ($defaults) {
             $this->addMany(require __DIR__ . '/../Validators/defaults.php');
         }
+
+        // Set the default class resolver
+        $this->classResolver = function (string $className): object {
+            return new $className;
+        };
     }
 
 
     /**
-     * Set the resolver
+     * Set validator class resolver
      *
-     * @param ResolverMiddlewareInterface $resolver
+     * @param Closure $resolver
      *
      * @return self
      */
-    public function setResolver(ResolverMiddlewareInterface $resolver): self
+    public function setClassResolver(Closure $resolver): self
     {
-        $this->resolver = $resolver;
+        $this->classResolver = $resolver;
+
+        return $this;
+    }
+
+
+    /**
+     * Add a list of validators
+     *
+     * @param array $validators
+     *
+     * @return self
+     */
+    public function addMany(array $validators): self
+    {
+        foreach ($validators as $name => $callback) {
+            $this->add($name, $callback);
+        }
 
         return $this;
     }
@@ -53,99 +71,70 @@ class Validators
      * Add a validator
      *
      * @param string $name
-     * @param string|Closure|ValidatorInterface $validator
+     * @param mixed $callback
      *
      * @return self
+     * 
+     * @throws InvalidCallbackException
      */
-    public function add(string $name, string|Closure|ValidatorInterface $validator): self
+    public function add(string $name, mixed $callback): self
     {
-        $this->index[$name] = $validator;
-
-        return $this;
-    }
-
-
-    /**
-     * Add an array of validatords
-     *
-     * @param array $validators
-     *
-     * @return self
-     */
-    public function addMany(array $validators): self
-    {
-        foreach ($validators as $name => $validator) {
-            $this->add($name, $validator);
+        if ($this->isValidCallback($callback) === false) {
+            throw new InvalidCallbackException("Invalid validator callback. Read doc for more info");
         }
 
+        $this->validators[$name] = $callback;
+
         return $this;
     }
 
-
-    /**
-     * Check if a validator is added
-     *
-     * @param string $name
-     *
-     * @return bool
-     */
-    public function has(string $name): bool
-    {
-        return key_exists($name, $this->index);
-    }
 
 
     /**
      * Get a validator
      *
      * @param string $name
+     * @param Values $values
      *
-     * @return callable
+     * @return mixed
+     * 
+     * @throws UnknownValidatorException
      */
-    public function get(string $name): callable
+    public function get(string $name, Values $values): mixed
     {
-        if ($this->has($name) === false) {
+        if (isset($this->validators[$name]) === false) {
             throw new UnknownValidatorException("Unknown validator: {$name}");
         }
 
-        $validator = $this->index[$name];
+        $callback = $this->validators[$name];
 
-        if (is_string($validator) && is_callable($validator) === false) {
-            $this->index[$name] = $this->resolver->resolveClass($validator);
+        if (is_string($callback) && class_exists($callback)) {
+            $callback = $this->classResolver->call($this, $callback);
         }
 
-        return $this->index[$name];
+        if (is_array($callback) && count($callback) === 2 && is_string($callback[0])) {
+            $callback[0] = $this->classResolver->call($this, $callback[0]);
+        }
+
+        if ($callback instanceof ValidatorInterface) {
+            $callback->setValues($values);
+        }
+
+        return $this->validators[$name] = $callback;
     }
 
 
     /**
-     * Execute a rule
+     * Check if a callback is valid
      *
-     * @param Data $data
-     * @param string $fieldKey
-     * @param string $name
-     * @param array $args
+     * @param mixed $callback
      *
-     * @return array [$success<bool>, $message<string|null>]
+     * @return bool
      */
-    public function execute(Data $data, string $fieldKey, string $name, array $args = []): array
+    public function isValidCallback(mixed $callback): bool
     {
-        $validator = $this->get($name);
-
-        if ($validator instanceof ValidatorInterface) {
-            $validator->setData($data);
-        }
-
-        $ruleArgs = array_merge([$data->get($fieldKey)], (array)$args);
-
-        $success = $validator(...$ruleArgs);
-
-        if ($success === false) {
-            $message = is_object($validator) ? $validator->getMessage() : '{field} failed validation';
-
-            return [false, $message];
-        }
-
-        return [true, null];
+        return is_callable($callback)
+            || (is_string($callback) && class_exists($callback))
+            || (is_array($callback) && count($callback) === 2 && is_string($callback[0]));
     }
 }

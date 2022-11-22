@@ -2,12 +2,14 @@
 
 namespace Jsl\Ensure\Components;
 
-class Data
+use InvalidArgumentException;
+
+class Values
 {
     /**
      * @var array
      */
-    protected array $data;
+    protected array $values;
 
     /**
      * @var string
@@ -16,27 +18,26 @@ class Data
 
 
     /**
-     * @param array $data
+     * @param array $values
      * @param string $separator
      */
-    public function __construct(array $data, string $separator = '.')
+    public function __construct(array $values, string $separator = '.')
     {
-        $this->data = $data;
+        $this->data = $values;
         $this->separator = $separator;
     }
 
 
     /**
-     * Set a value
+     * Add the field separator (for multidimensional arrays)
      *
-     * @param string $key
-     * @param mixed $value
+     * @param string $separator
      *
      * @return self
      */
-    public function set(string $key, mixed $value): self
+    public function setFieldSeparator(string $separator): self
     {
-        $this->data[$key] = $value;
+        $this->separator = $separator;
 
         return $this;
     }
@@ -86,5 +87,49 @@ class Data
         }
 
         return $data;
+    }
+
+
+    /**
+     * Set a field value
+     *
+     * @param string $fieldKey
+     * @param mixed $value
+     *
+     * @return self
+     */
+    public function set(string $fieldKey, mixed $value): self
+    {
+        $this->values[$fieldKey] = $value;
+
+        return $this;
+    }
+
+
+    /**
+     * Replace
+     *
+     * @param array $values
+     *
+     * @return self
+     */
+    public function replace(array $values): self
+    {
+        $this->values = $values;
+
+        return $this;
+    }
+
+
+    /**
+     * Check if a value is null
+     *
+     * @param string $fieldKey
+     *
+     * @return bool True if the value exists and is null
+     */
+    public function isNull(string $fieldKey): bool
+    {
+        return is_null($this->get($fieldKey, 'not-null'));
     }
 }

@@ -9,7 +9,7 @@ class AlphaNumValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} can only contain alpha numeric characters';
+    protected string $template = '{field} can only contain alpha numeric characters';
 
 
     /**

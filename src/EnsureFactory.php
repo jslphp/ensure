@@ -3,65 +3,70 @@
 namespace Jsl\Ensure;
 
 use Closure;
-use Jsl\Ensure\Components\Container;
-use Jsl\Ensure\Contracts\ResolverMiddlewareInterface;
-use Jsl\Ensure\Contracts\ValidatorInterface;
+use Jsl\Ensure\Components\ErrorTemplates;
+use Jsl\Ensure\Components\Rulesets;
+use Jsl\Ensure\Components\Validators;
+use Jsl\Ensure\Traits\SetTemplatesTrait;
 
 class EnsureFactory
 {
+    use SetTemplatesTrait;
+
     /**
-     * @var Container
+     * @var Validators
      */
-    protected Container $container;
+    protected Validators $validators;
+
+    /**
+     * @var ErrorTemplates
+     */
+    protected ErrorTemplates $templates;
+
+    /**
+     * @var Rulesets
+     */
+    protected Rulesets $sets;
+
+    /**
+     * @var string
+     */
+    protected string $fieldSeparator = '.';
 
 
     public function __construct()
     {
-        $this->container = new Container;
+        $this->validators = new Validators;
+        $this->templates = new ErrorTemplates;
+        $this->sets = new Rulesets;
     }
 
 
     /**
-     * Set the validator resolver 
+     * Set the validator class resolver
      *
-     * @param ResolverMiddlewareInterface $resolver
+     * @param Closure $resolver
      *
      * @return self
      */
-    public function setValidatorResolver(ResolverMiddlewareInterface $resolver): self
+    public function setClassResolver(Closure $resolver): self
     {
-        $this->container->validators()->setResolver($resolver);
+        $this->validators->setClassResolver($resolver);
 
         return $this;
     }
 
 
     /**
-     * Add a validator
+     * Set the field separator for the values
+     * - Default is .
      *
-     * @param string $name
-     * @param string|Closure|ValidatorInterface $validator
-     *
-     * @return self
-     */
-    public function addValidator(string $name, string|Closure|ValidatorInterface $validator): self
-    {
-        $this->container->validators()->add($name, $validator);
-
-        return $this;
-    }
-
-
-    /**
-     * Add an array of validatords
-     *
-     * @param array $validators
+     * @param string $separator
      *
      * @return self
      */
-    public function addManyValidators(array $validators): self
+    public function setFieldSeparator(string $separator): self
     {
-        $this->container->validators()->addMany($validators);
+        $this->fieldSeparator = $separator;
 
         return $this;
     }
@@ -77,48 +82,65 @@ class EnsureFactory
      */
     public function addRuleset(string $name, array $rules): self
     {
-        $this->container->rulesets()->add($name, $rules);
+        $this->sets->add($name, $rules);
 
         return $this;
     }
 
 
     /**
-     * Check if a ruleset is added
+     * Add a validator
      *
      * @param string $name
+     * @param mixed $callback
+     * @param string|null $template Optional error template for the validator
      *
-     * @return bool
+     * @return self
      */
-    public function hasRuleset(string $name): bool
+    public function addValidator(string $name, mixed $callback, ?string $template = null): self
     {
-        return $this->container->rulesets()->has($name);
+        $this->validators->add($name, $callback);
+
+        if ($template) {
+            $this->templates->setRuleTemplate($name, $template);
+        }
+
+        return $this;
     }
 
 
     /**
-     * Get a ruleset
+     * Add list of validators
      *
-     * @param string $name
+     * @param array $validators
      *
-     * @return array
+     * @return self
      */
-    public function getRuleset(string $name): array
+    public function addValidators(array $validators): self
     {
-        return $this->container->rulesets()->get($name);
+        $this->validators->addMany($validators);
+
+        return $this;
     }
 
 
     /**
      * Create a new Ensure instance
      *
-     * @param array $data
      * @param array|string $rules
+     * @param array $values
      *
      * @return Ensure
      */
-    public function create(array $data, array|string $rules = []): Ensure
+    public function create(array|string $rules, array $values): Ensure
     {
-        return new Ensure($data, $rules, $this->container);
+        if (is_string($rules)) {
+            $rules = $this->sets->get($rules);
+        }
+
+        $ensure = new Ensure($rules, $values, clone $this->validators, clone $this->templates);
+        $ensure->setFieldSeparator($this->fieldSeparator);
+
+        return $ensure;
     }
 }

@@ -2,25 +2,24 @@
 
 namespace Jsl\Ensure\Contracts;
 
-use Jsl\Ensure\Components\Data;
-
+use Jsl\Ensure\Components\Values;
 
 interface ValidatorInterface
 {
     /**
-     * Get the validation error
+     * Get the error template
      * 
      * @return string
      */
-    public function getMessage(): string;
+    public function getTemplate(): string;
 
 
     /**
-     * Set the data object
+     * Set the values object
      *
-     * @param Data $data
+     * @param Values $data
      *
      * @return self
      */
-    public function setData(Data $data): self;
+    public function setValues(Values $values): self;
 }

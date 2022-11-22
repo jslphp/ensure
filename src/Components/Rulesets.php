@@ -9,7 +9,20 @@ class Rulesets
     /**
      * @var array
      */
-    protected array $rules = [];
+    protected array $sets = [];
+
+
+    /**
+     * Check if a ruleset exists
+     *
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        return key_exists($name, $this->sets);
+    }
 
 
     /**
@@ -22,22 +35,9 @@ class Rulesets
      */
     public function add(string $name, array $rules): self
     {
-        $this->rules[$name] = $rules;
+        $this->sets[$name] = $rules;
 
         return $this;
-    }
-
-
-    /**
-     * Check if a ruleset is added
-     *
-     * @param string $name
-     *
-     * @return bool
-     */
-    public function has(string $name): bool
-    {
-        return key_exists($name, $this->rules);
     }
 
 
@@ -47,6 +47,8 @@ class Rulesets
      * @param string $name
      *
      * @return array
+     * 
+     * @throws UnknownRulesetException
      */
     public function get(string $name): array
     {
@@ -54,6 +56,6 @@ class Rulesets
             throw new UnknownRulesetException("Unknown ruleset: {$name}");
         }
 
-        return $this->rules[$name];
+        return $this->sets[$name];
     }
 }

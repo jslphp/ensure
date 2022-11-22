@@ -10,7 +10,7 @@ class IpValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} must be a valid IP address';
+    protected string $template = '{field} must be a valid IP address';
 
 
     /**
@@ -26,15 +26,15 @@ class IpValidator extends Validator
 
         switch ($type) {
             case 'any':
-                $this->message = '{field} must be a valid IP address';
+                $this->template = '{field} must be a valid IP address';
                 return is_string($value)
                     && filter_var($value, FILTER_VALIDATE_IP, FILTER_NULL_ON_FAILURE) !== null;
             case 'ipv4':
-                $this->message = '{field} must be a valid IPv4 address';
+                $this->template = '{field} must be a valid IPv4 address';
                 return is_string($value)
                     && filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_NULL_ON_FAILURE) !== null;
             case 'ipv6':
-                $this->message = '{field} must be a valid IPv6 address';
+                $this->template = '{field} must be a valid IPv6 address';
                 return is_string($value)
                     && filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_NULL_ON_FAILURE) !== null;
         }

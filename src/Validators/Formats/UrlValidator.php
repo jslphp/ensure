@@ -9,7 +9,7 @@ class UrlValidator extends Validator
     /**
      * @inheritDoc
      */
-    protected string $message = '{field} must a valid URL';
+    protected string $template = '{field} must a valid URL';
 
 
     /**

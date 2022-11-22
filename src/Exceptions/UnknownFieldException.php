@@ -2,8 +2,6 @@
 
 namespace Jsl\Ensure\Exceptions;
 
-use Exception;
-
-class UnknownFieldException extends Exception
+class UnknownFieldException extends EnsureException
 {
 }
