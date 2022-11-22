@@ -23,7 +23,7 @@ class Values
      */
     public function __construct(array $values, string $separator = '.')
     {
-        $this->data = $values;
+        $this->values = $values;
         $this->separator = $separator;
     }
 
@@ -52,14 +52,14 @@ class Values
      */
     public function has(string $fieldKey): bool
     {
-        $data = &$this->data;
+        $values = &$this->values;
 
         foreach (explode($this->separator, $fieldKey) as $key) {
-            if (is_array($data) === false || key_exists($key, $data) === false) {
+            if (is_array($values) === false || key_exists($key, $values) === false) {
                 return false;
             }
 
-            $data = &$data[$key];
+            $values = &$values[$key];
         }
 
         return true;
@@ -76,17 +76,17 @@ class Values
      */
     public function get(string $fieldKey, mixed $fallback = null): mixed
     {
-        $data = &$this->data;
+        $values = &$this->values;
 
         foreach (explode($this->separator, $fieldKey) as $key) {
-            if (is_array($data) === false || key_exists($key, $data) === false) {
+            if (is_array($values) === false || key_exists($key, $values) === false) {
                 return $fallback;
             }
 
-            $data = &$data[$key];
+            $values = &$values[$key];
         }
 
-        return $data;
+        return $values;
     }
 
 
