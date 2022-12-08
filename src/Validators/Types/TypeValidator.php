@@ -4,7 +4,6 @@ namespace Jsl\Ensure\Validators\Types;
 
 use InvalidArgumentException;
 use Jsl\Ensure\Abstracts\Validator;
-use Jsl\Ensure\Validators\Types\ArrayValidator as TypesArrayValidator;
 
 class TypeValidator extends Validator
 {
@@ -22,7 +21,7 @@ class TypeValidator extends Validator
         'integer' => IntegerValidator::class,
         'decimal' => DecimalValidator::class,
         'boolean' => BoolValidator::class,
-        'array'   => TypesArrayValidator::class,
+        'array'   => ArrayValidator::class,
     ];
 
 
@@ -50,7 +49,7 @@ class TypeValidator extends Validator
         }
 
         if ($validator($value) === false) {
-            $this->template = $validator->getMessage();
+            $this->template = $validator->getTemplate();
             return false;
         }
 
